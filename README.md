@@ -18,7 +18,6 @@ You shall also be able to explain (during interview):
 * The assignment shall be delivered as a GIT repository (preferably on Github).
 * The code must be possible to compile and unit tests must pass.
 * Code shall be clean, following coding standards, documented.
-* Assignment shall be submitted as a Github repository.
 * The commit log messages SHALL be short and self explaining.
 * Commits shall be small, focusing on one area at a time.
 
