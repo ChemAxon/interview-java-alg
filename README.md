@@ -7,7 +7,7 @@ The TreeVertex class implements traversal using depth and bredth first algorithm
 * Modify TreeVertex class to support concurrency.
 
 #### Cache problem
-Create a class with a new proper cache implementation. The unit tests read from the cache instance and verify whether the number of read elements from DAO and expected cache hits. The cache implementation shall support concurrent access, however the DAO component does not. 
+Create a class with a new proper cache implementation. The unit tests read from the cache instance and verify the number of read elements from DAO and expected cache hits. The cache implementation shall support concurrent access, however the DAO component does not. 
 
 You shall also be able to explain (during interview):
 * What is wrong with the WrongCacheLogic class implementation?
