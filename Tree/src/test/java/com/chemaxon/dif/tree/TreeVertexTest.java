@@ -37,13 +37,6 @@ public class TreeVertexTest {
         }
     }
 
-    private static void countDown(CountDownLatch latch) {
-        latch.countDown();
-    }
-
-    public TreeVertexTest() {
-    }
-
     @Test
     public void testBreadthFirstLogic() throws InterruptedException {
         fail("Must be implemented");
@@ -71,53 +64,41 @@ public class TreeVertexTest {
 
         final AtomicBoolean sameTree = new AtomicBoolean(true);
 
-        Thread t1;
-        t1 = new Thread(new Runnable() {
+        Thread t1 = new Thread(() -> root1.visitSubtree(new Visitor() {
             @Override
-            public void run() {
-                root1.visitSubtree(new Visitor() {
-                    @Override
-                    public void visit(TreeVertex v, int cnt) {
-                        switch (cnt) {
-                            case 1:
-                                countDown(tree1ProcessesFirstChild);
-                                await(tree2ProcessesFirstChild);
-                                break;
-                            case 2:
-                                TreeVertex parent = v.getParent();
-                                sameTree.compareAndSet(true, parent.equals(root1));
-                                countDown(tree1Fails);
-                                break;
-                        }
-                    }
-                }, TreeVertex.Strategy.BREADTH_FIRST);
+            public void visit(TreeVertex v, int cnt) {
+                switch (cnt) {
+                    case 1:
+                        tree1ProcessesFirstChild.countDown();
+                        await(tree2ProcessesFirstChild);
+                        break;
+                    case 2:
+                        TreeVertex parent = v.getParent();
+                        sameTree.compareAndSet(true, parent.equals(root1));
+                        tree1Fails.countDown();
+                        break;
+                }
             }
-        });
-        Thread t2 = new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                await(tree1ProcessesFirstChild);
-                root2.visitSubtree(new Visitor() {
-                    @Override
-                    public void visit(TreeVertex v, int cnt) {
-                        if (cnt == 2) {
-                            countDown(tree2ProcessesFirstChild);
-                            await(tree1Fails);
-                        }
+        }, TreeVertex.Strategy.BREADTH_FIRST));
+        Thread t2 = new Thread(() -> {
+            await(tree1ProcessesFirstChild);
+            root2.visitSubtree(new Visitor() {
+                @Override
+                public void visit(TreeVertex v, int cnt) {
+                    if (cnt == 2) {
+                        tree2ProcessesFirstChild.countDown();
+                        await(tree1Fails);
                     }
-                }, TreeVertex.Strategy.BREADTH_FIRST);
-            }
-
+                }
+            }, TreeVertex.Strategy.BREADTH_FIRST);
         });
 
         final List<Thread> threads = Lists.newArrayList();
         threads.add(t1);
         threads.add(t2);
-        
+
         for (Thread thread : threads) {
             thread.start();
-            
         }
 
         for (Thread thread : threads) {
@@ -125,7 +106,7 @@ public class TreeVertexTest {
             assertTrue("Problem with multithreaded execution",
                     thread.getState().equals(Thread.State.TERMINATED));
         }
-        
+
         Assert.assertTrue("Visiting vertex from another tree.", sameTree.get());
     }
 
@@ -136,23 +117,16 @@ public class TreeVertexTest {
         final CountDownLatch multithreadedAccess = new CountDownLatch(2);
         final List<Thread> threads = Lists.newArrayList();
         for (final VertexImpl tree : trees) {
-            Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    tree.visitSubtree(new TreeVertex.Visitor<Void>() {
-                        @Override
-                        public Void visit(TreeVertex v) {
-                            countDown(multithreadedAccess);
-                            await(multithreadedAccess);
-                            return null;
-                        }
-                    }, TreeVertex.Strategy.DEPTH_FIRST);
-                }
-            });
+            Thread t = new Thread(() -> tree.visitSubtree(
+                    (TreeVertex.Visitor<Void>) v -> {
+                        multithreadedAccess.countDown();
+                        await(multithreadedAccess);
+                        return null;
+                    }, TreeVertex.Strategy.DEPTH_FIRST));
             threads.add(t);
             t.start();
         }
-        
+
         for (Thread thread : threads) {
             thread.join(500);
             assertTrue("Multithreading is not supported",

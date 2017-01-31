@@ -117,10 +117,10 @@ public class CacheTest {
             throws InterruptedException {
         final Cache<Integer, Integer> cache = Cache.create(dao, createCacheLogic(), 128, 2048, numberOfThreads);
 
-        List<Thread> threads = Lists.newArrayList();
+        CountDownLatch latch = new CountDownLatch(numberOfThreads);
         final List<String> errors = Lists.newCopyOnWriteArrayList();
         for (int i = 0; i < numberOfThreads; ++i) {
-            Thread thread = new Thread(() -> {
+            new Thread(() -> {
                 try {
                     int queries = 50 + r.nextInt(100);
                     for (int j = 0; j < queries; ++j) {
@@ -131,15 +131,13 @@ public class CacheTest {
                     }
                 } catch (Exception e) {
                     errors.add(e.getMessage());
+                } finally {
+                    latch.countDown();
                 }
-            });
-            threads.add(thread);
-            thread.start();
+            }).start();
         }
 
-        for (Thread thread : threads) {
-            thread.join();
-        }
+        latch.await();
         assertTrue(errors.toString(), errors.isEmpty());
     }
 
@@ -168,7 +166,7 @@ public class CacheTest {
     }
 
     @Test
-    public void testParelellyRetrievedSameObject() throws InterruptedException {
+    public void testParallellyRetrievedSameObject() throws InterruptedException {
         final long seed = System.currentTimeMillis();
         final Random r = new Random(seed);
         final int numberOfThreads = 16;
@@ -180,7 +178,7 @@ public class CacheTest {
             @Override
             public Map<Integer, Integer> getData(Collection<Integer> ids) {
                 synchronized (lock) {
-                    Sets.SetView<Integer> idsProcessedMultipleTimes = Sets.intersection(
+                    Set<Integer> idsProcessedMultipleTimes = Sets.intersection(
                             idsCurrentlyProcessedByDao, Sets.newHashSet(ids));
                     Preconditions.checkState(idsProcessedMultipleTimes.isEmpty(),
                             "Retrieving IDs which are currently processed by other thread");
