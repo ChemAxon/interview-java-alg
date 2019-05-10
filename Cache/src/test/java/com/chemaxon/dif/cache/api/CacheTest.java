@@ -113,6 +113,17 @@ public class CacheTest {
         dao.assertKeyTouches("querying ID 2, must be retrieved from DAO", 2, 2);
     }
 
+
+    @Test
+    public void testDaoReadingEfficiency() {
+        final FakeDAO dao = FakeDAO.create();
+        Cache<Integer, Integer> cache = Cache.create(dao, createCacheLogic(), 2, 2, 1);
+        FakeDAO.runQueryAndAssertData(cache, 1, 2);
+        dao.assertDaoTouches("querying multiple IDs should touch DAO only once", 1);
+        FakeDAO.runQueryAndAssertData(cache, 2, 3, 4);
+        dao.assertDaoTouches("querying multiple IDs should touch DAO only once", 2);
+    }
+
     private void runMultithreadedRandomQueries(final FakeDAO dao, int numberOfThreads, Random r)
             throws InterruptedException {
         final Cache<Integer, Integer> cache = Cache.create(dao, createCacheLogic(), 128, 2048, numberOfThreads);
