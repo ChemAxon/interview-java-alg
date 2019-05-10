@@ -113,11 +113,10 @@ public class CacheTest {
         dao.assertKeyTouches("querying ID 2, must be retrieved from DAO", 2, 2);
     }
 
-
     @Test
     public void testDaoReadingEfficiency() {
         final FakeDAO dao = FakeDAO.create();
-        Cache<Integer, Integer> cache = Cache.create(dao, createCacheLogic(), 2, 2, 1);
+        Cache<Integer, Integer> cache = Cache.create(dao, createCacheLogic(), 4, 4, 1);
         FakeDAO.runQueryAndAssertData(cache, 1, 2);
         dao.assertDaoTouches("querying multiple IDs should touch DAO only once", 1);
         FakeDAO.runQueryAndAssertData(cache, 2, 3, 4);
